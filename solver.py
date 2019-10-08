@@ -98,7 +98,6 @@ while True:
 
         first_index =random.randint(0,len(coordlist)-count-1)
         sol.write("%d\n" % (first_index+1))
-        print("//First Index was", first_index, "//lenCoordlist was ", len(coordlist))
         first_point = coordlist.pop(first_index)
         second_point = coordlist[random.randint(0,len(coordlist)-1)]
         mindist = calcdist(first_point,second_point)
@@ -122,7 +121,7 @@ while True:
         sol.write("%d\n" % (second_point[0]))
         print("COMPLETE!!")
         sol.close()
-        f.close()
+    
     ################################################################
 
     if mode.lower() == ('rs2' or 'rs3'):
@@ -152,7 +151,7 @@ while True:
             index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
             buflist[index] = anslist[index2]
             buflist[index2] = anslist[index]
-            totaldist2 = totaldist0
+            totaldist2 = distbefore
             if abs(index-index2)==1:
                 totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
                 totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
@@ -175,33 +174,34 @@ while True:
         distances.sort()
         print("Best Distance at First Gen: ", distances[0])
         if distbefore>distances[0]: 
-            print("SUCCESSFUL! Improved by", totaldist0-distances[0])
-            totaldist0 = distances[0]
+            print("SUCCESSFUL! Improved by", distbefore-distances[0])
+            distbefore = distances[0]
         else: print("No Progress Made at this Gen")
-        print("------------------------------------------------------")
         selected_children=dict()
         for i in range(selection):
             selected_children[distances[i]]=children_in_generation[distances[i]]
+        selected_children[distbefore]=anslist
+        print("------------------------------------------------------")
+
         for gen in range(generations-1):
-            parents = list(selected_children.values())
-            previous_selection = selected_children.copy()
-            selected_children=dict()
+            parents = list(selected_children.keys())
             children_in_generation = dict()
-            for anslist in parents:
-                totaldist0 = calcdist_total(anslist, listholder)
+            
+            for key in parents:
+                anslist = selected_children[key]
+                totaldist2 = calcdist_total(selected_children[key], listholder)
+
                 for child in range(children):
+                    buflist = anslist.copy()
                     index = random.randint(0,len(anslist)-1)
                     index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
                     buflist[index] = anslist[index2]
                     buflist[index2] = anslist[index]
-                    totaldist2 = totaldist0
                     if abs(index-index2)==1:
                         totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
                         totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
                         totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
                         totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
-                        # if abs(totaldist2-totaldist)<0.001: print("COMPLIES!! at abs==1")
-                        # else: print("DOESNT COMPLY. Indices are", index, "  ", index2, "diff is", totaldist- totaldist2)
                     else:
                         totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
                         totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
@@ -213,13 +213,13 @@ while True:
                         totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)-1)]-1])
                     children_in_generation[totaldist2] = buflist
                     buflist = anslist.copy()
-            children_in_generation.update(previous_selection)
+            children_in_generation.update(selected_children)
             distances = list(children_in_generation.keys())
             distances.sort()
             print("Best Distance at",gen+2, "th Gen: ", distances[0])
-            if totaldist0>distances[0]: 
-                print("SUCCESSFUL! Improved by", totaldist0-distances[0])
-                totaldist = distances[0]
+            if distbefore>distances[0]: 
+                print("SUCCESSFUL! Improved by", distbefore-distances[0])
+                distbefore = distances[0]
             else: print("NO Progress at This Gen")
             print("--------------------------------------------------")
             selected_children=dict()
@@ -229,9 +229,9 @@ while True:
         distances.sort()
         print("Final Distance was", distances[0])
         order_tobe_saved = selected_children[distances[0]]
+        print("ERROR: ", calcdist_total(order_tobe_saved,listholder)-distances[0])
         save_solution(order_tobe_saved, "solution.csv")
-        print("The Best of the Selected Children Safely Stored at Solution.csv. Other Children are Discarded :'(")
-
+        print("The Best Child Safely Stored at Solution.csv. Other Children are Discarded :'(")
 
     # Chooses three random points. Shuffle them. Calculate the new total distance. Save the newly ordered list if the new distance is shorter than before. 
     if mode.lower() =='rs3':
