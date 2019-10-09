@@ -393,18 +393,17 @@ while True:
             grandlist = phegrandlist.copy()
 
             for k in range(number_of_ants):
-                legrandlist = grandlist.copy()
                 remaining_numbers = list(range(1,len(grandlist)+1))
                 verystart=0
                 while len(remaining_numbers):
                     if verystart==0: 
                         starting_vertex_index = random.randint(0,len(remaining_numbers)-1)
                         starting_vertex=remaining_numbers[starting_vertex_index]
-                        thelist = list(legrandlist[starting_vertex].values())
+                        thelist = list(grandlist[starting_vertex].values())
                         remaining_numbers.remove(starting_vertex)
                         verystart = starting_vertex
                     else:
-                        thelist = list(legrandlist.pop(starting_vertex).values())
+                        thelist = list(grandlist[starting_vertex].values())
                         remaining_numbers.remove(starting_vertex)
                     sum_of_pheromones = sum(thelist)
                     probability = list(map(lambda a: a/sum_of_pheromones, thelist))
