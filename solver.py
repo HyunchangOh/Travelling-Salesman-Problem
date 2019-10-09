@@ -2,6 +2,10 @@ import sys
 import random
 import math
 import collections
+#I used numpy only for calculating weighted random. I swear I didnot exploit this
+import numpy
+import operator
+
 coordlist = []
 returnlist = []
 totaldist = 0
@@ -42,6 +46,7 @@ def parse_initial(tspfile):
         # print(linetuple)
         linetupleInt=(int(linetuple[0]), float(linetuple[1]),float(linetuple[2]))
         coordlist.append(linetupleInt)
+    f.close()
     return coordlist
 
 #parse from saved solution file 'solfile'
@@ -56,33 +61,37 @@ def parse_solution(solfile):
     sol.close()
     return anslist
 
+#Save the list 'order' in the file named 'solfile'
 def save_solution(order, solfile):
-    sol = open(solfile, 'w')
-    for number in order:
-        sol.write("%d\n" % (number))
-    sol.close()
-while True:
-    print("\n-----------------Welcome to TSP Solver!-------------------")
-    mode = input("Select Your Mode. \nView Detailed Description of each mode: 'help'\n \nGenerate a New Initial Case\n  With Greedy Algorithm from Random Point: 'greed' \n  With Stochastic Rearrangement: 'random'\n\nImprove Last Solution with Stochastic Algorithms\n  Random Search with Two Points: 'RS2'\n  Random Search with Three Points: 'RS3' \n\nView Current Distance: 'view'\nExit Program: 'exit' \n")
-    if mode.lower() == 'exit': break
-    # Reads through the tsp file given in the second argument in the system call.
+    with open(solfile, 'w+') as sol:
+        for number in order:
+            sol.write("%d\n" %number)
+
+#randomise the given list 'list1'
+def randomise_list(list1):
+    li = list1.copy()
+    randomisedlistholder=list()
+    for i in range(len(li)):
+        index = random.randint(0,len(li)-1)
+        value = li.pop(index)[0]
+        randomisedlistholder.append(value)
+    return randomisedlistholder
+
+# Reads through the tsp file given in the second argument in the system call.
     # (For example, 'burma14.tsp' in 'python solver.py burma14.tsp')
     # Stores its information as list of tuples: {id, x_coordinate, y_coordinate} with the name 'listholder'
-    listholder = parse_initial(sys.argv[1])
-        
-    ###############################################################
-    
+listholder = parse_initial(sys.argv[1])
+###############################################################
+
+
+while True:
+    print("\n-----------------Welcome to TSP Solver!-------------------")
+    mode = input("Select Your Mode. \nView Detailed Description of each mode: 'help'\n \nGenerate a New Initial Case\n  With Greedy Algorithm from Random Point: 'greed' \n  With Stochastic Rearrangement: 'random'\n  With Ant Colony Optimisation: 'ant'\n\nImprove Last Solution with Stochastic Algorithms\n  Random Search with Two Points: 'RS2'\n  Random Search with Three Points: 'RS3' \n\nView Current Distance: 'view'\nExit Program: 'exit' \n")
+    if mode.lower() == 'exit': break
 
     if mode.lower() == 'random':
-        sol = open("solution.csv", "w")
-        listholderbuffer = listholder.copy()
-        randomisedlistholder = []
-        for i in range(len(listholderbuffer)):
-            index = random.randint(0,len(listholderbuffer)-1)
-            value = listholderbuffer.pop(index)[0]
-            randomisedlistholder.append(value)
-            sol.write("%d\n"% value)
-        sol.close()
+        randomisedlistholder = randomise_list(listholder)
+        save_solution(randomisedlistholder,"solution.csv")
         print("Random Initialisation Complete.\n Current Total Distance: ", calcdist_total(randomisedlistholder,listholder))
     
     if mode.lower() == 'help':
@@ -94,10 +103,11 @@ while True:
     # 'gen' mode is selected. Generates new greedy solution from a randomly chosen point.
     if mode.lower() =='greed':
         count = 0
-        sol= open("solution.csv","w")
-
+        greedylist = list()
+        coordlist = listholder.copy()
+        
         first_index =random.randint(0,len(coordlist)-count-1)
-        sol.write("%d\n" % (first_index+1))
+        greedylist.append(first_index+1)
         first_point = coordlist.pop(first_index)
         second_point = coordlist[random.randint(0,len(coordlist)-1)]
         mindist = calcdist(first_point,second_point)
@@ -115,30 +125,32 @@ while True:
             count = 0
             second_point = coordlist[random.randint(0,len(coordlist)-1)]
             mindist = calcdist(first_point,second_point)
-            sol.write("%d\n" % (first_point[0]))
+            greedylist.append(first_point[0])
             minindex=0
             print("len(coordlist)was", len(coordlist))
-        sol.write("%d\n" % (second_point[0]))
-        print("COMPLETE!!")
-        sol.close()
+        greedylist.append(second_point[0])
+        save_solution(greedylist,"solution.csv")
+        print("COMPLETE!! Distance was ", calcdist_total(greedylist,listholder))
+        continue
     
     ################################################################
 
     if mode.lower() == 'rs2' or mode.lower() == 'rs3':
         generations = int(input("How many generations more?"))
         ran = int(input("Input the Range of Randomisation: "))
+        anslist = parse_solution("solution.csv")
+        buflist = anslist.copy()
+        totaldist0 = calcdist_total(anslist,listholder)
+        distbefore = totaldist0
 
     # Brings the solution.csv file that was saved in the last run, or was generated from the 'gen' command.
     # Calculates the total distance (which is to be minimised) when the points where visited as listed in solution.csv
     # Stores the list of points from solution.csv at 'buflist' and 'anslist'. 
         
-    anslist = parse_solution("solution.csv")
-    buflist = anslist.copy()
-    totaldist0 = calcdist_total(anslist,listholder)
-    distbefore = totaldist0
+    
     ################################################################
 
-    #Chooses two random points. Shuffle them. Calculate the new total distance. Save the newly ordered list if the new distance is shorter than before. 
+    #Chooses two random points. Shuffle them. Calculate the new total distance. Repeat few steps to make children. Choose few of the best children and pass them over to the next generation. Save the newly ordered list if the new distance is shorter than before. 
     if mode.lower() =='rs2':
         children = int(input("How many Children from each parent? "))
         selection = int(input("How many best parents passed to next step? "))
@@ -233,6 +245,7 @@ while True:
         save_solution(order_tobe_saved, "solution.csv")
         print("The Best Child Safely Stored at Solution.csv. Other Children are Discarded :'(")
 
+    #Chooses two random points. Shuffle them. Calculate the new total distance. Repeat few steps to make children. Choose few of the best children and pass them over to the next generation. Save the newly ordered list if the new distance is shorter than before.
     if mode.lower() =='rs3':
         children = int(input("How many Children from each parent? "))
         selection = int(input("How many best parents passed to next step? "))
@@ -354,5 +367,89 @@ while True:
         save_solution(order_tobe_saved, "solution.csv")
         print("The Best Child Safely Stored at Solution.csv. Other Children are Discarded :'(")
 
+    #Uses Modified Ant Algorithms (The Greedy Ants Colony Algorithm). Starts from the initial tsp file.
+    if mode.lower() =='ant':
+        generations = int(input("How many Generations? "))
+        number_of_ants = int(input("How many ants? "))
+        grandlist = dict()
+        vertex_number = len(listholder)
+
+        for i in range(vertex_number):
+            pherolist=dict()
+            for j in range(vertex_number):
+                dist = calcdist(listholder[i],listholder[j])
+                if i==j: 
+                    pheromone = 0
+                elif dist==0:
+                    pheromone = 0
+                else:
+                    pheromone = 1000000/dist
+                pherolist[j+1]=pheromone
+            grandlist[i+1]=pherolist
+            print("Grandlist Generatating... ", i+1, "/", len(listholder))
+        print("-----------------Grandlist Generation Completed---------------")
+        phegrandlist = grandlist.copy()
+        for gen in range(generations):
+            grandlist = phegrandlist.copy()
+
+            for k in range(number_of_ants):
+                legrandlist = grandlist.copy()
+                remaining_numbers = list(range(1,len(grandlist)+1))
+                verystart=0
+                while len(remaining_numbers):
+                    if verystart==0: 
+                        starting_vertex_index = random.randint(0,len(remaining_numbers)-1)
+                        starting_vertex=remaining_numbers[starting_vertex_index]
+                        thelist = list(legrandlist[starting_vertex].values())
+                        remaining_numbers.remove(starting_vertex)
+                        verystart = starting_vertex
+                    else:
+                        thelist = list(legrandlist.pop(starting_vertex).values())
+                        remaining_numbers.remove(starting_vertex)
+                    sum_of_pheromones = sum(thelist)
+                    probability = list(map(lambda a: a/sum_of_pheromones, thelist))
+                    if sum(probability) !=1.0:
+                        probability = [x + 1.0-sum(probability) if x == max(probability) else x for x in probability]
+                    a = list()
+                    for i in range(len(listholder)):
+                        a.append(i+1)
+                    if len(remaining_numbers)==0:
+                        thechosen=verystart
+                        
+                    else:
+                        thechosen = numpy.random.choice(a, p=probability)
+                        while not (thechosen) in remaining_numbers:
+                            thechosen = numpy.random.choice(a, p=probability)
+                    
+                    phegrandlist[starting_vertex][thechosen] += 1000000/calcdist(listholder[starting_vertex-1], listholder[thechosen-1])
+                    starting_vertex = thechosen
+                    # if len(remaining_numbers)==0:
+                    #     print("reached very end")
+                    #     starting_vertex=verystart
+                print("one ant finished tour. killing this ant... INDEX ----", k+1,"/",number_of_ants)
+                    
+            print("One Ant Generation Finished ", gen+1, "/", generations)
+        print("Retrieving the Best Solution Brought by the Ants...")
+
+        list_tobe_saved = list()
+        starting_vertex = random.randint(0,vertex_number)
+        list_tobe_saved.append(starting_vertex)
+        while len(phegrandlist):
+            next_vertex = list(max(phegrandlist[starting_vertex].items(), key=operator.itemgetter(1)))[0]
+            i=1
+            while next_vertex in list_tobe_saved:
+                if next_vertex == lastly_added: break
+                phegrandlist[starting_vertex].pop(next_vertex)
+                next_vertex = list(max(phegrandlist[starting_vertex].items(), key=operator.itemgetter(1)))[0]
+                i+=1
+            list_tobe_saved.append(next_vertex)
+            lastly_added = next_vertex
+            phegrandlist.pop(starting_vertex)
+            starting_vertex=next_vertex
+        list_tobe_saved.pop()
+        save_solution(list_tobe_saved, "solution.csv")
+        
+        print("List Length is", len(list_tobe_saved))
+        print("Total Distance is", calcdist_total(list_tobe_saved, listholder))
     # Chooses three random points. Shuffle them. Calculate the new total distance. Save the newly ordered list if the new distance is shorter than before. 
-    
+    hello = input("Press Any Key +Enter to Return to Menu.")
