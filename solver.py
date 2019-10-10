@@ -364,69 +364,115 @@ def file_exist(solfile):
     # (For example, 'burma14.tsp' in 'python solver.py burma14.tsp')
     # Stores its information as list of tuples: {id, x_coordinate, y_coordinate} with the name 'listholder'
 listholder = parse_initial(sys.argv[1])
-if "-p" in sys.argv:
-    population = int(sys.argv[sys.argv.index("-p")+1])
-    print("population: ", population)
-if "-f" in sys.argv:
-    evaluations = int(sys.argv[sys.argv.index("-f")+1])
-    print("evaluation: ", evaluations)
 
+ant_gen = 3 #-ag
+ants = 3 #-an
 
-ant_gen = evaluations
-ants = evaluations
-children = 5
-selection = 3
-generations = evaluations * 1000
-ran = 5
-points_num = len(listholder)
+children = 5 #-p, -p2
+selection = 3 #-s, -s2
+generations = 4000 #-g, -g2
+ran = 5 #-r, -r2    
+
+children3 = 5 #-p, -p3
+selection3 = 3 #-s, -s3
+generations3 = 4000 #-g, -g3
+ran3 = 5 #-r, -r3
+
+m = 0
+
+total_generation_number = 10 #-f
 pheromone_from_beforelife = 5
 
-total_generation_number = 1000
+if "-p" in sys.argv:
+    children = int(sys.argv[sys.argv.index("-p")+1])
+    children3 = children
+if "-p2" in sys.argv:
+    children = int(sys.argv[sys.argv.index("-p2")+1])
+if "-p3" in sys.argv:
+    children3 = int(sys.argv[sys.argv.index("-p3")+1])
+if "-f" in sys.argv:
+    total_generation_number = int(sys.argv[sys.argv.index("-f")+1])
+
+if "-ag" in sys.argv:
+    ant_gen = int(sys.argv[sys.argv.index("-ag")+1])
+if "-an" in sys.argv:
+    ants = int(sys.argv[sys.argv.index("-an")+1])
+if "-s" in sys.argv:
+    selection = int(sys.argv[sys.argv.index("-s")+1])
+    selection3 = selection
+if "-s2" in sys.argv:
+    selection = int(sys.argv[sys.argv.index("-s2")+1])
+if "-s3" in sys.argv:
+    selection3 = int(sys.argv[sys.argv.index("-s3")+1])
+if "-g" in sys.argv:
+    generations = int(sys.argv[sys.argv.index("-g")+1])
+    generations3 = generations
+if "-g2" in sys.argv:
+    generations = int(sys.argv[sys.argv.index("-g2")+1])
+if "-g3" in sys.argv:
+    generations3 = int(sys.argv[sys.argv.index("-g3")+1])
+
+if "-r" in sys.argv:
+    ran = int(sys.argv[sys.argv.index("-r")+1])
+    ran3 = ran
+if "-r2" in sys.argv:
+    ran = int(sys.argv[sys.argv.index("-r2")+1])
+if "-r3" in sys.argv:
+    ran3 = int(sys.argv[sys.argv.index("-r3")+1])
+if "-m" in sys.argv:
+    m = int(sys.argv[sys.argv.index("-m")+1])
+if "-phbf" in sys.argv:
+    pheromone_from_beforelife = int(sys.argv[sys.argv.index("-phbf")+1])
+
+points_num = len(listholder)
+
+
+
 ###############################################################
 
 if file_exist("solution.csv"):
     anslist = parse_solution("solution.csv")
     if len(anslist) != len(listholder):
         anslist = []
-        print("Solution.csv detected for TSP set of other length. Erasing This file and Initialising... ")
+        if m: print("Solution.csv detected for TSP set of other length. Erasing This file and Initialising... ")
     else:
-        print("Solution.csv detected. Optimisation Will begin from this file.")
+        if m: print("Solution.csv detected. Optimisation Will begin from this file.")
 else:
     anslist = []
-    print("Solution.csv Not detected. Initialising...")
+    if m: print("Solution.csv Not detected. Initialising...")
 
 for grand_generation in range(total_generation_number):
     anslist = ant_colony_optimise(anslist, listholder, ant_gen, ants, pheromone_from_beforelife)
     antdist = calcdist_total(anslist,listholder)
-    print("[",grand_generation,"] AntCompleted")
+    if m: print("[",grand_generation,"] AntCompleted")
     if grand_generation ==0:
         mindist= antdist
         save_solution(anslist, "solution.csv")
-        print("Saving Solution", mindist)
+        if m: print("Saving Solution", mindist)
     elif antdist < mindist:
-        print("Distance Shortened. Saving Solution", antdist)
+        if m: print("Distance Shortened. Saving Solution", antdist)
         mindist = antdist
         save_solution(anslist, "solution.csv")
     
     distbefore = antdist
     anslist = random_point2(anslist,listholder,generations,ran,children,selection, distbefore)
     rs2dist = calcdist_total(anslist,listholder)
-    print("[",grand_generation,"] RS2 Completed")
+    if m: print("[",grand_generation,"] RS2 Completed")
     if rs2dist < mindist:
-        print("Distance Shortened. Saving Solution", rs2dist)
+        if m: print("Distance Shortened. Saving Solution", rs2dist)
         mindist = rs2dist
         save_solution(anslist, "solution.csv")
     
 
-    anslist = random_point3(anslist,listholder,generations,ran,children,selection, distbefore)
+    anslist = random_point3(anslist,listholder,generations3,ran3,children3,selection3, distbefore)
     rs3dist = calcdist_total(anslist,listholder)
-    print("[",grand_generation,"] RS3 Completed")
+    if m: print("[",grand_generation,"] RS3 Completed")
     if rs3dist < mindist:
-        print("Distance Shortened. Saving Solution", rs3dist)
+        if m: print("Distance Shortened. Saving Solution", rs3dist)
         mindist=rs3dist
         save_solution(anslist, "solution.csv")
     
-
+print(calcdist_total(anslist, listholder))
     #Uses Modified Ant Algorithms (The Greedy Ants Colony Algorithm). Starts from the initial tsp file.
     
     # Chooses three random points. Shuffle them. Calculate the new total distance. Save the newly ordered list if the new distance is shorter than before. 
