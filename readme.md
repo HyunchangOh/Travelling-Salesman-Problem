@@ -171,6 +171,38 @@ The first algorithm to be applied by the solver is the modified ant colony optim
 
 Solver will first generate a 2-D list (implemented with dictionary data structure), that specifies the amount of pheromone on each edge. (1) Initially, the amount of pheromone on each edge is not uniform, but is inversely proportional to the length of the edge. (2) If there is a saved file, extra pheromone will be spread on the edges present on the saved solution; the amount of pheromone spread on step 1 will be multiplied by a special parameter named *pheromone from beforelife*. 
 
+Below is the code for generating the pheromone list.
+
+```python
+phegrandlist = dict()
+    vertex_number = len(listholder)
+
+    for i in range(vertex_number):
+        pherolist=dict()
+        for j in range(vertex_number):
+            dist = calcdist(listholder[i],listholder[j])
+            if i==j: 
+                pheromone = 0
+            elif dist==0:
+                pheromone = 0
+            else:
+                pheromone = 100/dist
+            pherolist[j+1]=pheromone
+        phegrandlist[i+1]=pherolist
+```
+
+Below is the code for updating the pheromone list based on the previous solution.
+
+```python
+for i in range(len(anslist)):
+        if i==len(anslist)-1:
+            phegrandlist[anslist[i]][anslist[0]]*=pheromone_from_beforelife
+        else:
+            phegrandlist[anslist[i]][anslist[i+1]]*=pheromone_from_beforelife
+```
+
+
+
 Note that all edges are 'bidirectional', meaning that any given pair of points is connected with two edges, (For example for point A and B, the two edges will be A -->B and B-->A) and may have distinct pheromone values. Mathematically, this may seem useless as the order of visit does not affect the fitness function at all. However, having bidirectional edges is beneficial when there can only be a few ants due to low computing power. With just a few ants and few generations, it is necessary to distinguish their order of visit and let the solution follow that accordingly.
 
 #### Tour of the Ants
@@ -178,6 +210,46 @@ Note that all edges are 'bidirectional', meaning that any given pair of points i
 For each generation, ants will be placed at random point, with their number specified under the flag *-an*. The probability of a point to be selected for the next point is proportional to the amount of pheromone present on corresponding edge (direction sensitive). When an edge has been traveled by an ant, the pheromone value on that edge will be increased by a certain value. Note that this change is not visible to other ants of the same generation. This is made possible by keeping two separate pheromone-edge list, and updating only one of them during each generation.
 
 Points that have been already visited by an ant will not be visible to that ant. The tour of the ant finishes when the ant has visited all points, or equivalently when there is no visible point left for an ant. Then, the tour for another ant will begin with the pheromone-edge list that has been saved at the end of the previous generation (or initialisation). When a generation finishes, the updated pheromone list will be copied to the un-updated pheromone list. This will continue for *generations* (flag: -ag) number of generations.
+
+Below is the code for tour of the ants.
+
+```python
+for gen in range(generations):
+        grandlist = phegrandlist.copy()
+
+        for k in range(number_of_ants):
+            remaining_numbers = list(range(1,len(grandlist)+1))
+            verystart=0
+            while len(remaining_numbers):
+                if verystart==0: 
+                    starting_vertex_index = random.randint(0,len(remaining_numbers)-1)
+                    starting_vertex=remaining_numbers[starting_vertex_index]
+                    thelist = list(grandlist[starting_vertex].values())
+                    remaining_numbers.remove(starting_vertex)
+                    verystart = starting_vertex
+                else:
+                    thelist = list(grandlist[starting_vertex].values())
+                    remaining_numbers.remove(starting_vertex)
+                sum_of_pheromones = sum(thelist)
+                probability = list(map(lambda a: a/sum_of_pheromones, thelist))
+                if sum(probability) !=1.0:
+                    probability = [x + 1.0-sum(probability) if x == max(probability) else x for x in probability]
+                a = list()
+                for i in range(len(listholder)):
+                    a.append(i+1)
+                if len(remaining_numbers)==0:
+                    thechosen=verystart
+                    
+                else:
+                    thechosen = numpy.random.choice(a, p=probability)
+                    while not (thechosen) in remaining_numbers:
+                        thechosen = numpy.random.choice(a, p=probability)
+                
+                phegrandlist[starting_vertex][thechosen] += 100/calcdist(listholder[starting_vertex-1], listholder[thechosen-1])
+                starting_vertex = thechosen
+```
+
+
 
 #### Retrieving the Solution
 
@@ -187,11 +259,38 @@ First, a point will be randomly chosen. Let's call this point A. Then, the point
 
 If the total distance for the retrieved solution is shorter than that of the saved solution (if any), the new solution will be saved, overwriting the old *solution.csv* file. Else, the retrieved solution will be discarded and later steps will take the old solution as the starting point. If a better solution 
 
+```python
+list_tobe_saved = list()
+    starting_vertex = random.randint(0,vertex_number)
+    list_tobe_saved.append(starting_vertex)
+    while len(phegrandlist):
+        next_vertex = list(max(phegrandlist[starting_vertex].items(), key=operator.itemgetter(1)))[0]
+        i=1
+        while next_vertex in list_tobe_saved:
+            if next_vertex == lastly_added: break
+            phegrandlist[starting_vertex].pop(next_vertex)
+            next_vertex = list(max(phegrandlist[starting_vertex].items(), key=operator.itemgetter(1)))[0]
+            i+=1
+        list_tobe_saved.append(next_vertex)
+        lastly_added = next_vertex
+        phegrandlist.pop(starting_vertex)
+        starting_vertex=next_vertex
+    list_tobe_saved.pop()
+    return list_tobe_saved
+```
+
 
 
 ### 2-3 Two Point Random Swap
 
-Two point random swap is extremely easy, if the population control mechanic was ignored for now. Solver will first pick a random point in the list. Then, it will choose a second random point within the range (not in distance, but in order of visit) of *ran* (flag: -r2), so that the maximum difference in order of visit is *ran*. Solver will swap two points, calculate the total distance, and save the new order if the total distance is decreased. One method, named **'the population control'**, was employed to avoid falling straightly into local optimum and another method, named  **'swapping distance calculation'**, to shorten the resource usage on calculation of total distance.
+Two point random swap is extremely easy, if the population control mechanic was ignored for now. Solver will first pick a random point in the list. Then, it will choose a second random point within the range (not in distance, but in order of visit) of *ran* (flag: -r2), so that the maximum difference in order of visit is *ran*. 
+
+```python
+index = random.randint(0,len(anslist)-1)
+index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
+```
+
+Solver will swap two points, calculate the total distance, and save the new order if the total distance is decreased. One method, named **'the population control'**, was employed to avoid falling straightly into local optimum and another method, named  **'swapping distance calculation'**, to shorten the resource usage on calculation of total distance.
 
 #### Population Control
 
@@ -208,6 +307,33 @@ Only two points are swapped at each instance, and maximum of four edges have bee
 If two selected points are adjacent to each other, total of three edges have been destroyed and newly formed. So, the lengths of the three edges will be subtracted from total distance, and the lengths of the newly formed edges will be added to the total distance. Now we have the up-to-date total distance.
 
 If two selected points are not adjacent to each other, total of four edges have been destroyed and newly formed. Similar operations will be conducted for the four edges, and we can get the up-to-date total distance.
+
+Below is the python code for the method. anslist is the solution list to take. listholder is the list that links point index to point coordinate, that has been parsed directly from the tsp file.
+
+```python
+buflist = anslist.copy()
+index = random.randint(0,len(anslist)-1)
+index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
+buflist[index] = anslist[index2]
+buflist[index2] = anslist[index]
+if abs(index-index2)==1:
+    totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
+    totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
+    totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
+    totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
+    
+else:
+    totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
+    totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
+    totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)+1)]-1])
+    totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)-1)]-1])
+    totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
+    totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
+    totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)+1)]-1])
+    totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)-1)]-1])
+```
+
+
 
 
 

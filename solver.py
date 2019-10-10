@@ -77,6 +77,7 @@ def randomise_list(list1):
         randomisedlistholder.append(value)
     return randomisedlistholder
 
+#the modified ant colony optimisation
 def ant_colony_optimise(anslist, listholder, generations, number_of_ants, pheromone_from_beforelife):
     phegrandlist = dict()
     vertex_number = len(listholder)
@@ -165,19 +166,19 @@ def random_point2(anslist, listholder, generations, ran, children, selection, di
         selection = int(input("You must make more children than the number of children you want to keep. How many best solution to keep in each step again? "))
 
     children_in_generation = dict()
+    # the first swap
     for child in range(children*selection):
         index = random.randint(0,len(anslist)-1)
         index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
         buflist[index] = anslist[index2]
         buflist[index2] = anslist[index]
         totaldist2 = distbefore
+        #Swap Distance Calculation Method
         if abs(index-index2)==1:
             totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
             totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
-            # if abs(totaldist2-totaldist)<0.001: print("COMPLIES!! at abs==1")
-            # else: print("DOESNT COMPLY. Indices are", index, "  ", index2, "diff is", totaldist- totaldist2)
         else:
             totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
@@ -192,13 +193,12 @@ def random_point2(anslist, listholder, generations, ran, children, selection, di
     distances = list(children_in_generation.keys())
     distances.sort()
     if distbefore>distances[0]: 
-        # print("[",1,"]","SUCCESS. Current Distance: ", distances[0])
         distbefore = distances[0]
     selected_children=dict()
     for i in range(selection):
         selected_children[distances[i]]=children_in_generation[distances[i]]
     selected_children[distbefore]=anslist
-
+    # from second generation.
     for gen in range(generations-1):
         parents = list(selected_children.keys())
         children_in_generation = dict()
@@ -233,7 +233,6 @@ def random_point2(anslist, listholder, generations, ran, children, selection, di
         distances = list(children_in_generation.keys())
         distances.sort()
         if distbefore>distances[0]: 
-            # print("[",gen+2,"]","SUCCESS. Current Distance: ", distances[0])
             distbefore = distances[0]
         selected_children=dict()
         for i in range(selection):
@@ -242,25 +241,25 @@ def random_point2(anslist, listholder, generations, ran, children, selection, di
     distances.sort()
     return selected_children[distances[0]]
 
-#Similar to random_point2 function, but chooses
+#Chooses Three random points and shuffle them
 def random_point3(anslist, lisholder,generations, ran, children, selection, distbefore):
     while selection > children**2:
         selection = int(input("You must make more children than the number of children you want to keep. How many best solution to keep in each step again? "))
     buflist = anslist.copy()
     children_in_generation = dict()
+    # The first generation
     for child in range(children*selection):
         index = random.randint(0,len(anslist)-1)
         index2 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
         buflist[index] = anslist[index2]
         buflist[index2] = anslist[index]
         totaldist2 = distbefore
+        # The first Swap
         if abs(index-index2)==1:
             totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
             totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
-            # if abs(totaldist2-totaldist)<0.001: print("COMPLIES!! at abs==1")
-            # else: print("DOESNT COMPLY. Indices are", index, "  ", index2, "diff is", totaldist- totaldist2)
         else:
             totaldist2 -= calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
@@ -270,23 +269,18 @@ def random_point3(anslist, lisholder,generations, ran, children, selection, dist
             totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)+1)]-1])
             totaldist2 += calcdist(listholder[anslist[max(index,index2)]-1],listholder[anslist[circ(anslist, min(index,index2)+1)]-1])
             totaldist2 += calcdist(listholder[anslist[min(index,index2)]-1],listholder[anslist[circ(anslist, max(index,index2)-1)]-1])
-            # if abs(totaldist2-totaldist)<0.001: print("COMPLIES!! at abs==1")
-            # else: print("DOESNT COMPLY. Indices are", index, "  ", index2, "diff is", totaldist- totaldist2)
         buflist2=buflist.copy()
         index3 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
         while index3 == index:
             index3 = random.randint(max(0,index-ran), min(index+ran,len(anslist)-1))
         buflist2[index3] = buflist[index2]
         buflist2[index2] = buflist[index3]
-        # totaldist = calcdist_total(buflist2,listholder)
-
+        # The Second Swap.
         if abs(index3-index2)==1:
             totaldist2 -= calcdist(listholder[buflist[min(index3,index2)]-1],listholder[buflist[circ(anslist, min(index3,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[buflist[max(index3,index2)]-1],listholder[buflist[circ(anslist, max(index3,index2)+1)]-1])
             totaldist2 += calcdist(listholder[buflist[max(index3,index2)]-1],listholder[buflist[circ(anslist, min(index3,index2)-1)]-1])
             totaldist2 += calcdist(listholder[buflist[min(index3,index2)]-1],listholder[buflist[circ(anslist, max(index3,index2)+1)]-1])
-            # if abs(totaldist2-totaldist)<0.001: print("COMPLIES!! at abs==1")
-            # else: print("DOESNT COMPLY. Indices are", index2, "  ", index3, "diff is", totaldist- totaldist2)
         else:
             totaldist2 -= calcdist(listholder[buflist[min(index3,index2)]-1],listholder[buflist[circ(anslist, min(index3,index2)-1)]-1])
             totaldist2 -= calcdist(listholder[buflist[max(index3,index2)]-1],listholder[buflist[circ(anslist, max(index3,index2)+1)]-1])
@@ -302,13 +296,12 @@ def random_point3(anslist, lisholder,generations, ran, children, selection, dist
     distances = list(children_in_generation.keys())
     distances.sort()
     if distbefore>distances[0]: 
-        # print("[",1,"]","SUCCESS. Current Distance: ", distances[0])
         distbefore = distances[0]
     selected_children=dict()
     for i in range(selection):
         selected_children[distances[i]]=children_in_generation[distances[i]]
     selected_children[distbefore]=anslist
-
+    # from the Second generation
     for gen in range(generations-1):
         parents = list(selected_children.keys())
         children_in_generation = dict()
@@ -343,7 +336,6 @@ def random_point3(anslist, lisholder,generations, ran, children, selection, dist
         distances = list(children_in_generation.keys())
         distances.sort()
         if distbefore>distances[0]: 
-            # print("[",gen+2,"]","SUCCESS. Current Distance: ", distances[0])
             distbefore = distances[0]
         selected_children=dict()
         for i in range(selection):
@@ -473,6 +465,3 @@ for grand_generation in range(total_generation_number):
         save_solution(anslist, "solution.csv")
     
 print(calcdist_total(anslist, listholder))
-    #Uses Modified Ant Algorithms (The Greedy Ants Colony Algorithm). Starts from the initial tsp file.
-    
-    # Chooses three random points. Shuffle them. Calculate the new total distance. Save the newly ordered list if the new distance is shorter than before. 
